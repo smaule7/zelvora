@@ -123,7 +123,7 @@ app.post('/api/chat', async (req, res) => {
           action: 'run_behavior',
           actionType: 'write',
           connection: connection.id,
-          inputField: 'agent',
+          inputField: 'agent_id',
         });
 
         const choicesList = Array.isArray(choices?.data) ? choices.data : [];
@@ -158,11 +158,9 @@ app.post('/api/chat', async (req, res) => {
       actionType: 'write',
       connection: connection.id,
       inputs: {
-        agent: agentId,
-        instructions: message,
-        message: message,
-        wait_for_reply: true,
-        pause: true,
+        agent_id: agentId,
+        agent_input_message: message,
+        wait_for_response: 'true',
       },
       timeoutSeconds: 75,
     });
