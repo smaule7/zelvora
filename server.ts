@@ -113,40 +113,38 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // 2. Determine target Agent ID (prefers ZAPIER_AGENT_ID, or searches connected agents for "Zelvoro")
-    let agentId = process.env.ZAPIER_AGENT_ID;
+    // 2. Discover Agents that are enabled for the "Trigger via Zap" integration.
+    const choices = await zapier.listActionInputFieldChoices({
+      app: 'agents',
+      action: 'run_behavior',
+      actionType: 'write',
+      connection: connection.id,
+      inputField: 'agent_id',
+    });
+    const choicesList = Array.isArray(choices?.data) ? choices.data : [];
 
-    if (!agentId) {
-      try {
-        const choices = await zapier.listActionInputFieldChoices({
-          app: 'agents',
-          action: 'run_behavior',
-          actionType: 'write',
-          connection: connection.id,
-          inputField: 'agent_id',
-        });
-
-        const choicesList = Array.isArray(choices?.data) ? choices.data : [];
-        const zelvoroMatch = choicesList.find(
-          (c: { label?: string; value?: string }) =>
-            c.label?.toLowerCase().includes('zelvoro') ||
-            c.value?.toLowerCase().includes('zelvoro')
-        );
-
-        if (zelvoroMatch?.value) {
-          agentId = String(zelvoroMatch.value);
-        } else if (choicesList.length > 0 && choicesList[0]?.value) {
-          agentId = String(choicesList[0].value);
-        }
-      } catch (inspectErr) {
-        console.warn('Could not auto-discover agent choices:', inspectErr);
-      }
+    if (choicesList.length === 0) {
+      return res.status(503).json({
+        error:
+          'No Zapier Agent is available yet. Enable "Trigger via Zap" for the Zelvoro Agent in Zapier, then try again.',
+        code: 'NO_ZAPIER_TRIGGER_ENABLED',
+      });
     }
 
+    const configuredAgentId = process.env.ZAPIER_AGENT_ID;
+    const agentId =
+      choicesList.find((choice: { value?: string }) => choice.value === configuredAgentId)
+        ?.value ||
+      choicesList.find(
+        (choice: { label?: string; value?: string }) =>
+          choice.label?.toLowerCase().includes('zelvoro') ||
+          choice.value?.toLowerCase().includes('zelvoro')
+      )?.value ||
+      choicesList[0]?.value;
+
     if (!agentId) {
-      return res.status(400).json({
-        error:
-          'Unable to identify the Zelvoro Agent ID. Please provide ZAPIER_AGENT_ID in your environment secrets or ensure your Zelvoro Agent has the "Trigger via Zap" trigger enabled.',
+      return res.status(503).json({
+        error: 'Zapier did not return a usable Agent ID. Please check the Agent trigger configuration.',
         code: 'MISSING_AGENT_ID',
       });
     }
