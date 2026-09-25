@@ -1,0 +1,7 @@
+{
+  "name": "Zelvoro AI",
+  "description": "A modern, premium dark black and emerald green AI chat interface with advanced multimodal file handling and clean conversational layout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
